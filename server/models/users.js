@@ -35,7 +35,34 @@ var User = sequelize.define('user', {
     }
   }
 });
-//sequelize automatically creates createdAt and updatedAt
-// User.hasMany(Item); circular referencing occured (Item already belongsTo User)
-// User.sync();
+
+
+User.belongsToMany(User, {as: 'followings', through: Follower, foreignKey: 'followedById'});
+User.belongsToMany(User, {as: 'followers', through: Follower, foreignKey: 'followingId'});
+
+
+// it worked!
+User.findById(1).then(function(user){
+  User.findById(2).then(function(data) {
+    user.addFollowing(data).then(function(data) {
+      console.log(data[0]);
+    });
+  })
+})
+
+// it worked
+// User.findOne({
+//   where: {
+//     id: 2
+//   },
+//   include: [
+//     {
+//       model: User,
+//       as: 'followings'
+//     }
+//   ]
+// }).then(function(data) {
+//   console.log(data.get('followings'));
+// })
+
 module.exports = User;

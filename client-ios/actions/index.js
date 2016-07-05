@@ -15,8 +15,10 @@ import { Actions } from 'react-native-router-flux';
 export const mainButtonPressed = (buttonCategory) => {
   return (dispatch, getState) => {
     let userInput = getState().lists.userInput;
+    let user = getState().auth.user;
     if (userInput) {
       let newItem = {
+        user_id: user.id,
         title: userInput,
         category: buttonCategory
       }
@@ -306,8 +308,9 @@ const toggleItemFailure = () => {
 // ******* FETCH ITEMS SECTION ******
 
 const fetchInitialDatabase = () => {
-  return function(dispatch) {
+  return function(dispatch, getState) {
     dispatch(fetchDatabaseListsRequest());
+    var id = getState().auth.user.id;
     AsyncStorage.getItem('JWT_TOKEN', function(err, userToken){
       if(err){
         console.log("error accessing JWT_TOKEN in local storage: ", err);
@@ -316,6 +319,8 @@ const fetchInitialDatabase = () => {
         fetch('https://orenda-smartlist.herokuapp.com/api/items/', {
           method: 'GET',
           headers: {
+            // send user id as header
+            'User': id.toString(),
             'Authorization': JSON.parse(userToken).jwt
           },
         })
@@ -464,17 +469,17 @@ export const loginUser = function(creds) {
       return response.json();
     })
     .then((data) => {
+      console.log('this is returned data from server', data);
       var jwtObj = {
         jwt: data.jwt
       }
-      storeLocally('JWT_TOKEN', jwtObj, function(err, result){
+      storeLocally('JWT_TOKEN', data, function(err, result){
         if(err){
           console.log("Error with storing JWT to AsyncStorage: ", err);
         } else {
-          dispatch(fetchInitialDatabase());
-          // AlertIOS.alert('Welcome back!');
           Actions.addScreen();
           dispatch(loginSuccess(data))
+          dispatch(fetchInitialDatabase());
         };
       });
     })
@@ -546,13 +551,13 @@ export const signupUser = function(creds) {
       var jwtObj = {
         jwt: data.jwt
       }
-      storeLocally('JWT_TOKEN', jwtObj, function(err, result){
+      storeLocally('JWT_TOKEN', data, function(err, result){
         if(err){
           console.log("Error with storing JWT to AsyncStorage: ", err);
         } else {
+          dispatch(signupSuccess(data))
           dispatch(fetchInitialDatabase());
           // AlertIOS.alert(data.username + ", thank you for joining!")
-          dispatch(signupSuccess(data))
         };
       });
     })
@@ -646,7 +651,8 @@ export const verifyUserToken = () => {
         dispatch(authorizeFailure())
       } else {
         if(tokenObj){
-          dispatch(authorizeSuccess());
+          dispatch(authorizeSuccess(JSON.parse(tokenObj)));
+          dispatch(fetchInitialDatabase())
         } else {
           dispatch(authorizeFailure())
         }
@@ -662,10 +668,11 @@ export const authorizeRequest = () => {
   }
 }
 
-export const authorizeSuccess = () => {
+export const authorizeSuccess = (user) => {
   return {
     type: types.AUTHORIZE_SUCCESS,
-    isFetching: false
+    isFetching: false,
+    user: user
   }
 }
 
@@ -704,6 +711,12 @@ export const updateSearchSuggestionsSuccess = (inputSuggestions) => {
   return {
     type: types.UPDATE_SEARCH_SUGGESTIONS_SUCCESS,
     suggestions: inputSuggestions
+  }
+}
+
+export const clearSuggestion = () => {
+  return {
+    type: types.CLEAR_SUGGESTION
   }
 }
 
