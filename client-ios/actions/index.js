@@ -6,9 +6,35 @@ import { reset } from 'redux-form';
 import _ from 'lodash';
 import {
   AsyncStorage,
-  AlertIOS
+  AlertIOS,
+  NativeModules,
+  DeviceEventEmitter
 } from 'react-native';
 import { Actions } from 'react-native-router-flux';
+
+//Device location module/methods
+let Location = NativeModules.RNLocation;
+Location.setDistanceFilter(5.0);
+// let subscription = DeviceEventEmitter.addListener(
+//   'locationUpdated',
+//   (location) => {
+//     AlertIOS("Location from device!: ", location);
+//     /* Example location returned
+//       {
+//         coords: {
+//           speed: -1,
+//           longitude: -0.1337,
+//           latitude: 51.50998,
+//           accuracy: 5,
+//           heading: -1,
+//           altitude: 0,
+//           altitudeAccuracy: -1
+//         },
+//         timestamp: 1446007304457.029
+//       }
+//       */
+//   }
+// );
 
 // ******* ADD ITEM SECTION ******
 
@@ -21,6 +47,15 @@ export const mainButtonPressed = (buttonCategory) => {
         user_id: user.id,
         title: userInput,
         category: buttonCategory
+      }
+      if(buttonCategory.toUpperCase() === "EAT"){
+        Location.getAuthorizationStatus(function(authorization) {
+          if(authorization !== "authorizedWhenInUse"){
+            Location.requestWhenInUseAuthorization();
+          }
+        });
+        Location.startUpdatingLocation();
+
       }
       dispatch(updateFilter(buttonCategory));
       dispatch(addItemLocally(newItem));
